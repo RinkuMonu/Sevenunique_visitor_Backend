@@ -15,6 +15,7 @@ app.use(cors({
     "http://localhost:5173",
     "http://localhost:5174",
     "https://visitor-frontend-tawny.vercel.app",
+    "https://visitor.sevenunique.com",
   ],
   credentials: true
 }));
@@ -32,7 +33,7 @@ app.use("/api/admin", require("./routes/Users"));
 app.use("/api/visitors", require("./routes/Visitors"));
 app.use("/api/admin/dashboard", require("./routes/adminDashboardRoutes"));
 
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () =>
   console.log(`🔥 Server running on port ${PORT}`)
 );
