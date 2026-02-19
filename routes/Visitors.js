@@ -7,7 +7,8 @@ const upload = require("../midleware/uploadMiddleware");
 const {
   sendEmailNotification,
   sendSMSNotification,
-  sendVisitorThankYouSMS
+  sendVisitorThankYouSMS,
+  sendThanksEmailNotification
 } = require("../services/notificationService");
 
 
@@ -59,7 +60,10 @@ const onlyReception = (req, res, next) => {
 
 router.post(
   "/",
-  upload.single("photo"),
+  upload.fields([
+    { name: "photo", maxCount: 1 },
+    { name: "visitorIdPhoto", maxCount: 1 },
+  ]),
   async (req, res) => {
     try {
       const employee = await User.findById(req.body.employeeToMeet);
@@ -69,13 +73,18 @@ router.post(
       const visitor = await Visitor.create({
         ...req.body,
         visitDateTime: new Date(req.body.visitDateTime), // ✅ NEW
-        photo: req.file ? `/uploads/visitors/${req.file.filename}` : null,
+        photo: req.files?.photo
+          ? `/uploads/visitors/${req.files.photo[0].filename}`
+          : null,
+        visitorIdPhoto: req.files?.visitorIdPhoto
+          ? `/uploads/visitors/${req.files.visitorIdPhoto[0].filename}`
+          : null,
         status: "WAITING",
         inTime: new Date(),
       });
 
       await sendEmailNotification(employee, visitor);
-      await sendSMSNotification(employee, visitor);
+      // await sendSMSNotification(employee, visitor);
 
       res.status(201).json(visitor);
     } catch (err) {
@@ -107,7 +116,10 @@ router.get("/:id", auth, async (req, res) => {
 /* =================================================
    ✏ UPDATE VISITOR
 ================================================= */
-router.put("/:id", auth, upload.single("photo"), async (req, res) => {
+router.put("/:id", auth, upload.fields([
+  { name: "photo", maxCount: 1 },
+  { name: "visitorIdPhoto", maxCount: 1 },
+]), async (req, res) => {
   try {
     const updateData = {
       ...req.body,
@@ -117,10 +129,13 @@ router.put("/:id", auth, upload.single("photo"), async (req, res) => {
       updateData.visitDateTime = new Date(req.body.visitDateTime);
     }
 
-    if (req.file) {
-      updateData.photo = `/uploads/visitors/${req.file.filename}`;
+    if (req.files?.photo) {
+      updateData.photo = `/uploads/visitors/${req.files.photo[0].filename}`;
     }
-
+    if (req.files?.visitorIdPhoto) {
+      updateData.visitorIdPhoto =
+        `/uploads/visitors/${req.files.visitorIdPhoto[0].filename}`;
+    }
     const visitor = await Visitor.findByIdAndUpdate(
       req.params.id,
       updateData,
@@ -221,7 +236,7 @@ router.put("/:id/status", auth, async (req, res) => {
             : `${remainingMinutes}m`;
       }
 
-        await sendVisitorThankYouSMS(visitor);
+      await sendThanksEmailNotification(visitor);
 
     }
 

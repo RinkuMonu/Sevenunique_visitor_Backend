@@ -2,8 +2,8 @@ const axios = require("axios");
 
 /* ================= EMAIL SEND (MSG91) ================= */
 exports.sendEmailNotification = async (employee, visitor) => {
-  console.log("emp", employee);
-  console.log("visitor", visitor);
+  // console.log("emp", employee);
+  // console.log("visitor", visitor);
 
   const imageUrl = `${process.env.BASE_URL}${visitor.photo}`;
 
@@ -61,7 +61,7 @@ exports.sendEmailNotification = async (employee, visitor) => {
       }
     );
 
-    console.log("✅ Visitor email sent:", response.data);
+    // console.log("✅ Visitor email sent:", response.data);
   } catch (error) {
     console.error(
       "❌ Error sending visitor email:",
@@ -69,6 +69,126 @@ exports.sendEmailNotification = async (employee, visitor) => {
     );
   }
 };
+
+
+exports.sendThanksEmailNotification = async (visitor, employee) => {
+  try {
+    // console.log("visitor", visitor);
+
+    /* ================= IMAGE ================= */
+
+    const imageUrl = visitor?.photo
+      ? `${process.env.BASE_URL}${visitor.photo}`
+      : `${process.env.BASE_URL}/default-user.png`;
+
+    /* ================= DATE FORMATTERS ================= */
+
+    const format = (date) =>
+      date
+        ? new Date(date).toLocaleString("en-IN", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+        })
+        : "";
+
+    const meetingDate = visitor?.visitDateTime
+      ? new Date(visitor.visitDateTime).toLocaleDateString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      })
+      : "";
+
+    const meetingStart = format(visitor?.meetingStartTime || visitor?.inTime);
+    const meetingEnd = format(visitor?.meetingEndTime);
+
+    /* ================= DURATION CALC ================= */
+
+    let duration = "";
+
+    if (visitor?.meetingStartTime && visitor?.meetingEndTime) {
+      const diffMs =
+        new Date(visitor.meetingEndTime) -
+        new Date(visitor.meetingStartTime);
+
+      const minutes = Math.floor(diffMs / 60000);
+      const hours = Math.floor(minutes / 60);
+      const remainingMinutes = minutes % 60;
+
+      duration =
+        hours > 0
+          ? `${hours}h ${remainingMinutes}m`
+          : `${remainingMinutes} minutes`;
+    }
+
+    /* ================= PAYLOAD ================= */
+
+    const payload = {
+      recipients: [
+        {
+          to: [
+            {
+              name: visitor?.name || "Visitor",
+              email: visitor?.email,
+            },
+          ],
+
+          variables: {
+            Visitor_Name: visitor?.name || "",
+            Host_Name: employee?.name || "",
+            Purpose: visitor?.purpose || "Meeting",
+
+            Meeting_Date: meetingDate,
+            Meeting_Start: meetingStart,
+            Meeting_End: meetingEnd,
+            Meeting_Duration: duration,
+
+            Visitor_Image: imageUrl,
+
+            companyName: "Sevenunique Tech Solutions",
+            Year: new Date().getFullYear(),
+          },
+        },
+      ],
+
+      from: {
+        name: "Sevenunique Tech Solutions Pvt. Ltd.",
+        email: "info@sevenunique.com",
+      },
+
+      domain: "mail.sevenunique.com",
+
+      template_id: process.env.MSG91_EMAIL_TEMPLATE_ID_THANKYOU,
+    };
+
+    /* ================= API CALL ================= */
+
+    const response = await axios.post(
+      "https://control.msg91.com/api/v5/email/send",
+      payload,
+      {
+        headers: {
+          authkey: process.env.MSG91_AUTH_KEY,
+          "Content-Type": "application/json",
+          accept: "application/json",
+        },
+      }
+    );
+
+    // console.log("✅ Thank you email sent:", response.data);
+  } catch (error) {
+    console.error(
+      "❌ Error sending thank you email:",
+      error.response?.data || error.message
+    );
+  }
+};
+
+
 
 
 
@@ -107,7 +227,7 @@ exports.sendVisitorThankYouSMS = async (visitor) => {
 /* ================= SMS SEND (MSG91) ================= */
 exports.sendSMSNotification = async (employee, visitor) => {
   try {
-    await axios.post(
+    const ressss = await axios.post(
       "https://control.msg91.com/api/v5/flow/",
       {
         template_id: process.env.MSG91_SMS_TEMPLATE_ID,
@@ -127,6 +247,7 @@ exports.sendSMSNotification = async (employee, visitor) => {
         },
       }
     );
+    console.log("resssssss smsss", ressss.data)
   } catch (err) {
     console.log("SMS send failed:", err.response?.data || err.message);
   }

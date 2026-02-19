@@ -7,7 +7,11 @@ const visitorSchema = new mongoose.Schema(
     email: String,
     company: String,
     purpose: String,
-
+    visitorIdNumber: String,
+    visitorIdPhoto: {
+      type: String,
+      required: true,
+    },
     employeeToMeet: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User"
